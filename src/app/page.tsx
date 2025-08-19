@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getPdf, savePdf, clearPdfs as clearDbPdfs } from "@/lib/db";
 import { extractInformation } from "@/ai/flows/extract-information-from-pdf";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`;
 
@@ -27,7 +29,7 @@ const FormSchema = z.object({
 interface PdfData {
   name: string;
   dataUri: string;
-  text: string;
+  pages: string[];
 }
 
 export default function Home() {
@@ -43,15 +45,16 @@ export default function Home() {
     defaultValues: { query: "" },
   });
 
-  const extractTextFromDataUri = useCallback(async (dataUri: string): Promise<string> => {
+  const extractTextFromDataUri = useCallback(async (dataUri: string): Promise<string[]> => {
     const pdf = await pdfjs.getDocument({ data: atob(dataUri.split(',')[1]) }).promise;
-    let fullText = "";
+    const pages: string[] = [];
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
-      fullText += textContent.items.map(item => 'str' in item ? item.str : '').join(" ") + "\n";
+      const pageText = textContent.items.map(item => 'str' in item ? item.str : '').join(" ");
+      pages.push(pageText);
     }
-    return fullText;
+    return pages;
   }, []);
 
   const loadPdfFromDb = useCallback(async () => {
@@ -59,8 +62,8 @@ export default function Home() {
       const storedPdf = await getPdf();
       if (storedPdf) {
         setIsLoading(true);
-        const text = await extractTextFromDataUri(storedPdf.dataUri);
-        setPdfData({ name: storedPdf.name, dataUri: storedPdf.dataUri, text });
+        const pages = await extractTextFromDataUri(storedPdf.dataUri);
+        setPdfData({ name: storedPdf.name, dataUri: storedPdf.dataUri, pages });
       }
     } catch (error) {
       console.error("Failed to load PDF from DB", error);
@@ -86,8 +89,8 @@ export default function Home() {
         const reader = new FileReader();
         reader.onload = async (e) => {
           const dataUri = e.target?.result as string;
-          const text = await extractTextFromDataUri(dataUri);
-          setPdfData({ name: file.name, dataUri, text });
+          const pages = await extractTextFromDataUri(dataUri);
+          setPdfData({ name: file.name, dataUri, pages });
           await savePdf('current_pdf', file.name, dataUri);
           setIsLoading(false);
         };
@@ -114,14 +117,15 @@ export default function Home() {
   };
   
   async function onSubmit(data: z.infer<typeof FormSchema>) {
-    if (!pdfData?.text) {
+    if (!pdfData?.pages || pdfData.pages.length === 0) {
         toast({ variant: "destructive", title: "Error", description: "No PDF text available to search." });
         return;
     }
     setIsLoading(true);
     setSearchResult(null);
     try {
-        const result = await extractInformation({ pdfText: pdfData.text, query: data.query });
+        const pdfText = pdfData.pages.join('\n\n');
+        const result = await extractInformation({ pdfText, query: data.query });
         setSearchResult(result.extractedInformation);
     } catch (error) {
         console.error("AI extraction failed", error);
@@ -176,7 +180,7 @@ export default function Home() {
                     </Button>
                 </CardHeader>
                 <CardContent className="h-full p-0">
-                    <embed src={pdfData.dataUri} type="application/pdf" width="100%" height="100%" />
+                    <embed src={pdfData.dataUri} type="application/pdf" width="100%" height="calc(100% - 72px)" />
                 </CardContent>
             </Card>
 
@@ -210,27 +214,59 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="min-h-[200px]">
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2 text-2xl"><Sparkles className="text-accent"/> AI Insights</CardTitle>
-                    <CardDescription>The extracted information will appear here.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {isLoading && searchResult === null ? (
-                        <div className="space-y-3">
-                            <Skeleton className="h-4 w-[80%]" />
-                            <Skeleton className="h-4 w-[90%]" />
-                            <Skeleton className="h-4 w-[75%]" />
-                        </div>
-                    ) : searchResult ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-foreground">
-                          {searchResult}
-                        </div>
-                    ) : (
-                        <p className="text-center text-muted-foreground">No query submitted yet.</p>
-                    )}
-                </CardContent>
-              </Card>
+              <Tabs defaultValue="insights" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="insights"><Sparkles className="mr-2"/> AI Insights</TabsTrigger>
+                  <TabsTrigger value="content"><FileText className="mr-2"/> Content</TabsTrigger>
+                </TabsList>
+                <TabsContent value="insights">
+                  <Card className="min-h-[200px]">
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2 text-2xl"><Sparkles className="text-accent"/> AI Insights</CardTitle>
+                        <CardDescription>The extracted information will appear here.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoading && searchResult === null ? (
+                            <div className="space-y-3">
+                                <Skeleton className="h-4 w-[80%]" />
+                                <Skeleton className="h-4 w-[90%]" />
+                                <Skeleton className="h-4 w-[75%]" />
+                            </div>
+                        ) : searchResult ? (
+                            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-foreground">
+                              {searchResult}
+                            </div>
+                        ) : (
+                            <p className="text-center text-muted-foreground">No query submitted yet.</p>
+                        )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="content">
+                    <Card className="min-h-[200px] max-h-[60vh] overflow-y-auto">
+                        <CardHeader>
+                            <CardTitle className="font-headline flex items-center gap-2 text-2xl"><FileText className="text-primary"/> Paper Content</CardTitle>
+                            <CardDescription>Browse the full text content of the document page by page.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {pdfData.pages.length > 0 ? (
+                                <Accordion type="single" collapsible className="w-full">
+                                    {pdfData.pages.map((pageText, index) => (
+                                        <AccordionItem value={`page-${index + 1}`} key={index}>
+                                            <AccordionTrigger>Page {index + 1}</AccordionTrigger>
+                                            <AccordionContent className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-foreground">
+                                                {pageText || "No text content found on this page."}
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    ))}
+                                </Accordion>
+                            ) : (
+                                <p className="text-center text-muted-foreground">No content to display.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         )}
