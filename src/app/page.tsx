@@ -164,7 +164,7 @@ export default function Home() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
-            <Card className="overflow-hidden lg:sticky lg:top-8">
+            <Card className="overflow-hidden lg:sticky lg:top-8 h-[calc(100vh-4rem)]">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div className="flex min-w-0 items-center gap-3">
                         <BookOpenCheck className="h-6 w-6 flex-shrink-0 text-primary" />
@@ -175,7 +175,7 @@ export default function Home() {
                         <span className="sr-only">Clear PDF</span>
                     </Button>
                 </CardHeader>
-                <CardContent className="h-[700px] p-0">
+                <CardContent className="h-full p-0">
                     <embed src={pdfData.dataUri} type="application/pdf" width="100%" height="100%" />
                 </CardContent>
             </Card>
