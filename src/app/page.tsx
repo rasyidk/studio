@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileText, FileBadge } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileText, FileBadge, Quote } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { getPdf, savePdf, clearPdfs as clearDbPdfs } from "@/lib/db";
 import { extractInformation, ExtractInformationOutput } from "@/ai/flows/extract-information-from-pdf";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`;
 
@@ -237,11 +238,26 @@ export default function Home() {
                                 <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-foreground">
                                     {searchResult.extractedInformation}
                                 </div>
-                                {searchResult.sourcePage && (
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <FileBadge className="h-4 w-4 text-accent" />
-                                        <span>Source: Page {searchResult.sourcePage}</span>
-                                    </div>
+                                {(searchResult.sourcePage || searchResult.sourceText) && (
+                                    <>
+                                        <Separator/>
+                                        <div className="space-y-2">
+                                            {searchResult.sourceText && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {searchResult.sourceText}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {searchResult.sourcePage && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {searchResult.sourcePage}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         ) : (

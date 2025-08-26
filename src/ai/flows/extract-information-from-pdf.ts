@@ -22,6 +22,7 @@ export type ExtractInformationInput = z.infer<typeof ExtractInformationInputSche
 const ExtractInformationOutputSchema = z.object({
   extractedInformation: z.string().describe('The extracted information from the PDF based on the query.'),
   sourcePage: z.number().optional().describe('The page number from which the information was extracted.'),
+  sourceText: z.string().optional().describe('The exact paragraph or sentence from the document that was used to formulate the answer.'),
 });
 export type ExtractInformationOutput = z.infer<typeof ExtractInformationOutputSchema>;
 
@@ -38,7 +39,8 @@ const prompt = ai.definePrompt({
   Given the content of a PDF document and a user's query, extract the most relevant information from the document that answers the query.
   The PDF content is provided with page markers (e.g., "Page 1: ...").
   You MUST identify the page number where you found the information and return it in the 'sourcePage' field.
-  If the query cannot be answered using the content of the PDF, respond with a message saying that you cannot answer the question and do not provide a source page.
+  You MUST also extract the exact paragraph or sentence that contains the answer and return it in the 'sourceText' field.
+  If the query cannot be answered using the content of the PDF, respond with a message saying that you cannot answer the question and do not provide a source page or source text.
 
   PDF Content: {{{pdfText}}}
   User Query: {{{query}}}
