@@ -179,7 +179,7 @@ export default function Home() {
                     </Button>
                 </CardHeader>
                 <CardContent className="h-full p-0">
-                    <embed src={pdfData.dataUri} type="application/pdf" width="100%" height="calc(100% - 72px)" />
+                    <iframe src={pdfData.dataUri} className="h-[calc(100%-72px)] w-full" title={pdfData.name} />
                 </CardContent>
             </Card>
 
