@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileText, FileBadge, Quote } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,8 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getPdf, savePdf, clearPdfs as clearDbPdfs } from "@/lib/db";
 import { extractInformation, ExtractInformationOutput } from "@/ai/flows/extract-information-from-pdf";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`;
@@ -215,82 +213,50 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Tabs defaultValue="insights" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="insights"><Sparkles className="mr-2"/> AI Insights</TabsTrigger>
-                  <TabsTrigger value="content"><FileText className="mr-2"/> Content</TabsTrigger>
-                </TabsList>
-                <TabsContent value="insights">
-                  <Card className="min-h-[200px]">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2 text-2xl"><Sparkles className="text-accent"/> AI Insights</CardTitle>
-                        <CardDescription>The extracted information will appear here.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoading && searchResult === null ? (
-                            <div className="space-y-3">
-                                <Skeleton className="h-4 w-[80%]" />
-                                <Skeleton className="h-4 w-[90%]" />
-                                <Skeleton className="h-4 w-[75%]" />
+              <Card className="min-h-[200px]">
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2 text-2xl"><Sparkles className="text-accent"/> AI Insights</CardTitle>
+                    <CardDescription>The extracted information will appear here.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isLoading && searchResult === null ? (
+                        <div className="space-y-3">
+                            <Skeleton className="h-4 w-[80%]" />
+                            <Skeleton className="h-4 w-[90%]" />
+                            <Skeleton className="h-4 w-[75%]" />
+                        </div>
+                    ) : searchResult ? (
+                        <div className="space-y-4">
+                            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-foreground">
+                                {searchResult.extractedInformation}
                             </div>
-                        ) : searchResult ? (
-                            <div className="space-y-4">
-                                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-foreground">
-                                    {searchResult.extractedInformation}
-                                </div>
-                                {(searchResult.sourcePage || searchResult.sourceText) && (
-                                    <>
-                                        <Separator/>
-                                        <div className="space-y-2">
-                                            {searchResult.sourceText && (
-                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
-                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
-                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
-                                                        {searchResult.sourceText}
-                                                    </blockquote>
-                                                </div>
-                                            )}
-                                            {searchResult.sourcePage && (
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <FileBadge className="h-4 w-4 text-accent" />
-                                                    <span>Source: Page {searchResult.sourcePage}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        ) : (
-                            <p className="text-center text-muted-foreground">No query submitted yet.</p>
-                        )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="content">
-                    <Card className="min-h-[200px] max-h-[60vh] overflow-y-auto">
-                        <CardHeader>
-                            <CardTitle className="font-headline flex items-center gap-2 text-2xl"><FileText className="text-primary"/> Paper Content</CardTitle>
-                            <CardDescription>Browse the full text content of the document page by page.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {pdfData.pages.length > 0 ? (
-                                <Accordion type="single" collapsible className="w-full">
-                                    {pdfData.pages.map((pageText, index) => (
-                                        <AccordionItem value={`page-${index + 1}`} key={index}>
-                                            <AccordionTrigger>Page {index + 1}</AccordionTrigger>
-                                            <AccordionContent className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-foreground">
-                                                {pageText || "No text content found on this page."}
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    ))}
-                                </Accordion>
-                            ) : (
-                                <p className="text-center text-muted-foreground">No content to display.</p>
+                            {(searchResult.sourcePage || searchResult.sourceText) && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-2 pt-4">
+                                        {searchResult.sourceText && (
+                                            <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                    {searchResult.sourceText}
+                                                </blockquote>
+                                            </div>
+                                        )}
+                                        {searchResult.sourcePage && (
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <FileBadge className="h-4 w-4 text-accent" />
+                                                <span>Source: Page {searchResult.sourcePage}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
                             )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-              </Tabs>
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground">No query submitted yet.</p>
+                    )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}
