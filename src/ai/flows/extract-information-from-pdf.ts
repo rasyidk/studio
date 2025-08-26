@@ -42,6 +42,8 @@ const prompt = ai.definePrompt({
   You MUST also extract the exact paragraph or sentence that contains the answer and return it in the 'sourceText' field.
   If the query cannot be answered using the content of the PDF, respond with a message saying that you cannot answer the question and do not provide a source page or source text.
 
+  IMPORTANT: Do not take information from the literature review section of the paper. Focus on the main findings and methodology of the research.
+
   PDF Content: {{{pdfText}}}
   User Query: {{{query}}}
   \n`,
