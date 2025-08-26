@@ -36,7 +36,7 @@ const prompt = ai.definePrompt({
   output: {schema: ExtractInformationOutputSchema},
   prompt: `You are an expert AI assistant specializing in extracting information from PDF documents.
 
-  Given the content of a PDF document and a user's query, extract the most relevant information from the document that answers the query.
+  Given the content of a PDF document and a user's query, extract the most relevant information from the document that answers the query. The answer should be concise and straight to the point.
   
   IMPORTANT: You MUST only use the information present in the PDF document provided. Do not use any external knowledge or access the internet to answer the query.
 
