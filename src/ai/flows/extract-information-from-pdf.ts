@@ -14,13 +14,14 @@ import {z} from 'genkit';
 const ExtractInformationInputSchema = z.object({
   pdfText: z
     .string()
-    .describe('The text content of the PDF document.'),
+    .describe('The text content of the PDF document, with each page prefixed by "Page X:".'),
   query: z.string().describe('The user query to extract specific information from the PDF.'),
 });
 export type ExtractInformationInput = z.infer<typeof ExtractInformationInputSchema>;
 
 const ExtractInformationOutputSchema = z.object({
   extractedInformation: z.string().describe('The extracted information from the PDF based on the query.'),
+  sourcePage: z.number().optional().describe('The page number from which the information was extracted.'),
 });
 export type ExtractInformationOutput = z.infer<typeof ExtractInformationOutputSchema>;
 
@@ -35,7 +36,9 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert AI assistant specializing in extracting information from PDF documents.
 
   Given the content of a PDF document and a user's query, extract the most relevant information from the document that answers the query.
-  If the query cannot be answered using the content of the PDF, respond with a message saying that you cannot answer the question.
+  The PDF content is provided with page markers (e.g., "Page 1: ...").
+  You MUST identify the page number where you found the information and return it in the 'sourcePage' field.
+  If the query cannot be answered using the content of the PDF, respond with a message saying that you cannot answer the question and do not provide a source page.
 
   PDF Content: {{{pdfText}}}
   User Query: {{{query}}}

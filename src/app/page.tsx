@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileText } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileText, FileBadge } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getPdf, savePdf, clearPdfs as clearDbPdfs } from "@/lib/db";
-import { extractInformation } from "@/ai/flows/extract-information-from-pdf";
+import { extractInformation, ExtractInformationOutput } from "@/ai/flows/extract-information-from-pdf";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -36,7 +36,7 @@ export default function Home() {
   const [pdfData, setPdfData] = useState<PdfData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [searchResult, setSearchResult] = useState<string | null>(null);
+  const [searchResult, setSearchResult] = useState<ExtractInformationOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -124,9 +124,9 @@ export default function Home() {
     setIsLoading(true);
     setSearchResult(null);
     try {
-        const pdfText = pdfData.pages.join('\n\n');
+        const pdfText = pdfData.pages.map((pageText, index) => `Page ${index + 1}: ${pageText}`).join('\n\n');
         const result = await extractInformation({ pdfText, query: data.query });
-        setSearchResult(result.extractedInformation);
+        setSearchResult(result);
     } catch (error) {
         console.error("AI extraction failed", error);
         toast({ variant: "destructive", title: "AI Error", description: "Failed to extract information. Please try again." });
@@ -233,8 +233,16 @@ export default function Home() {
                                 <Skeleton className="h-4 w-[75%]" />
                             </div>
                         ) : searchResult ? (
-                            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-foreground">
-                              {searchResult}
+                            <div className="space-y-4">
+                                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-foreground">
+                                    {searchResult.extractedInformation}
+                                </div>
+                                {searchResult.sourcePage && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <FileBadge className="h-4 w-4 text-accent" />
+                                        <span>Source: Page {searchResult.sourcePage}</span>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <p className="text-center text-muted-foreground">No query submitted yet.</p>
