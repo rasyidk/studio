@@ -29,7 +29,6 @@ interface PdfData {
   name: string;
   dataUri: string;
   pages: string[];
-  displayUrl: string;
 }
 
 export default function Home() {
@@ -39,30 +38,11 @@ export default function Home() {
   const [searchResult, setSearchResult] = useState<ExtractInformationOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  
-  const objectUrlRef = useRef<string | null>(null);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: { query: "" },
   });
-  
-  const createDisplayUrl = (dataUri: string) => {
-    const byteString = atob(dataUri.split(',')[1]);
-    const mimeString = dataUri.split(',')[0].split(':')[1].split(';')[0];
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-    }
-    const blob = new Blob([ab], { type: mimeString });
-    if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-    }
-    const url = URL.createObjectURL(blob);
-    objectUrlRef.current = url;
-    return url;
-  };
 
   const extractTextFromDataUri = useCallback(async (dataUri: string): Promise<string[]> => {
     const pdf = await pdfjs.getDocument({ data: atob(dataUri.split(',')[1]) }).promise;
@@ -82,8 +62,7 @@ export default function Home() {
       if (storedPdf) {
         setIsLoading(true);
         const pages = await extractTextFromDataUri(storedPdf.dataUri);
-        const displayUrl = createDisplayUrl(storedPdf.dataUri);
-        setPdfData({ name: storedPdf.name, dataUri: storedPdf.dataUri, pages, displayUrl });
+        setPdfData({ name: storedPdf.name, dataUri: storedPdf.dataUri, pages });
       }
     } catch (error) {
       console.error("Failed to load PDF from DB", error);
@@ -97,12 +76,6 @@ export default function Home() {
   
   useEffect(() => {
     loadPdfFromDb();
-    
-    return () => {
-        if(objectUrlRef.current) {
-            URL.revokeObjectURL(objectUrlRef.current);
-        }
-    }
   }, [loadPdfFromDb]);
   
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,8 +89,7 @@ export default function Home() {
         reader.onload = async (e) => {
           const dataUri = e.target?.result as string;
           const pages = await extractTextFromDataUri(dataUri);
-          const displayUrl = createDisplayUrl(dataUri);
-          setPdfData({ name: file.name, dataUri, pages, displayUrl });
+          setPdfData({ name: file.name, dataUri, pages });
           await savePdf('current_pdf', file.name, dataUri);
           setIsLoading(false);
         };
@@ -133,10 +105,6 @@ export default function Home() {
   };
 
   const clearPdf = async () => {
-    if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-    }
     setPdfData(null);
     setSearchResult(null);
     form.reset();
@@ -211,7 +179,7 @@ export default function Home() {
                     </Button>
                 </CardHeader>
                 <CardContent className="h-full p-0">
-                    <iframe src={pdfData.displayUrl} className="h-[calc(100%-72px)] w-full" title={pdfData.name} />
+                    <iframe src={pdfData.dataUri} className="h-[calc(100%-72px)] w-full" title={pdfData.name} />
                 </CardContent>
             </Card>
 
