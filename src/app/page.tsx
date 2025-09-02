@@ -55,7 +55,7 @@ export default function Home() {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map(item => 'str' in item ? item.str : '').join(" ");
-      pages.push(pageText);
+      pages.push(`Page ${i}: ${pageText}`);
     }
     return pages;
   }, []);
@@ -256,8 +256,16 @@ export default function Home() {
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
                     ) : subjectLevel ? (
-                        <div className="flex items-center justify-center">
+                        <div className="flex flex-col items-center justify-center gap-4">
                             <Badge variant="secondary" className="text-lg">{subjectLevel.level}</Badge>
+                            {subjectLevel.source && (
+                                <div className="flex items-start gap-3 text-sm text-muted-foreground self-stretch">
+                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                        {subjectLevel.source}
+                                    </blockquote>
+                                </div>
+                            )}
                         </div>
                     ) : null}
                 </CardContent>

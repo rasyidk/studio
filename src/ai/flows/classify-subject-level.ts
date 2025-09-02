@@ -29,6 +29,7 @@ const SubjectLevelEnum = z.enum([
 
 const ClassifySubjectLevelOutputSchema = z.object({
   level: SubjectLevelEnum.describe('The identified educational level of the research subjects.'),
+  source: z.string().optional().describe('The exact sentence or phrase from the document that justifies the classification.'),
 });
 export type ClassifySubjectLevelOutput = z.infer<typeof ClassifySubjectLevelOutputSchema>;
 
@@ -50,7 +51,8 @@ Choose only one category from the following:
 - "Teacher": subjects who are teachers (use this if the paper only says “teachers” without specifying their education level).
 - "NotApplicable": if the research does not involve human subjects or their educational level is not mentioned.
 
-Respond with only the category name inside the 'level' field.
+Respond with the category name in the 'level' field.
+Also, provide the exact sentence or phrase from the document that justifies your classification in the 'source' field. If the level is "NotApplicable", the source can be empty.
 
 Paper Content:
 {{{pdfText}}}
