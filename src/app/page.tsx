@@ -266,6 +266,12 @@ export default function Home() {
                                     </blockquote>
                                 </div>
                             )}
+                             {subjectLevel.page && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground self-stretch">
+                                    <FileBadge className="h-4 w-4 text-accent" />
+                                    <span>Source: Page {subjectLevel.page}</span>
+                                </div>
+                            )}
                         </div>
                     ) : null}
                 </CardContent>

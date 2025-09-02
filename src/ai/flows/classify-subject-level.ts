@@ -30,6 +30,7 @@ const SubjectLevelEnum = z.enum([
 const ClassifySubjectLevelOutputSchema = z.object({
   level: SubjectLevelEnum.describe('The identified educational level of the research subjects.'),
   source: z.string().optional().describe('The exact sentence or phrase from the document that justifies the classification.'),
+  page: z.number().optional().describe('The page number from which the source was taken.'),
 });
 export type ClassifySubjectLevelOutput = z.infer<typeof ClassifySubjectLevelOutputSchema>;
 
@@ -43,6 +44,9 @@ const prompt = ai.definePrompt({
   output: {schema: ClassifySubjectLevelOutputSchema},
   prompt: `You are a research assistant. Your task is to identify the educational level of the research subjects in the given paper.
 
+The PDF content is provided with page markers (e.g., "Page 1: ...").
+You MUST identify the page number from which you extracted the source text.
+
 Choose only one category from the following:
 - "K12": subjects who are in or have completed elementary, middle school, or high school.
 - "HigherEd": subjects who are in or have completed any post-secondary study (undergraduate + graduate).
@@ -52,7 +56,7 @@ Choose only one category from the following:
 - "NotApplicable": if the research does not involve human subjects or their educational level is not mentioned.
 
 Respond with the category name in the 'level' field.
-Also, provide the exact sentence or phrase from the document that justifies your classification in the 'source' field. If the level is "NotApplicable", the source can be empty.
+Also, provide the exact sentence or phrase from the document that justifies your classification in the 'source' field, and the page number in the 'page' field. If the level is "NotApplicable", the source and page can be empty.
 
 Paper Content:
 {{{pdfText}}}
