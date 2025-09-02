@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getPdf, savePdf, clearPdfs as clearDbPdfs } from "@/lib/db";
 import { extractInformation, ExtractInformationOutput } from "@/ai/flows/extract-information-from-pdf";
+import { classifySubjectLevel, ClassifySubjectLevelOutput } from "@/ai/flows/classify-subject-level";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`;
 
@@ -36,6 +38,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [searchResult, setSearchResult] = useState<ExtractInformationOutput | null>(null);
+  const [subjectLevel, setSubjectLevel] = useState<ClassifySubjectLevelOutput | null>(null);
+  const [isClassifying, setIsClassifying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -83,6 +87,7 @@ export default function Home() {
     if (file && file.type === "application/pdf") {
       setIsLoading(true);
       setSearchResult(null);
+      setSubjectLevel(null);
       form.reset();
       try {
         const reader = new FileReader();
@@ -107,6 +112,7 @@ export default function Home() {
   const clearPdf = async () => {
     setPdfData(null);
     setSearchResult(null);
+    setSubjectLevel(null);
     form.reset();
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -123,7 +129,7 @@ export default function Home() {
     setIsLoading(true);
     setSearchResult(null);
     try {
-        const pdfText = pdfData.pages.map((pageText, index) => `Page ${index + 1}: ${pageText}`).join('\n\n');
+        const pdfText = pdfData.pages.join('\n\n');
         const result = await extractInformation({ pdfText, query: data.query });
         setSearchResult(result);
     } catch (error) {
@@ -131,6 +137,25 @@ export default function Home() {
         toast({ variant: "destructive", title: "AI Error", description: "Failed to extract information. Please try again." });
     } finally {
         setIsLoading(false);
+    }
+  }
+
+  const handleClassify = async () => {
+    if (!pdfData?.pages || pdfData.pages.length === 0) {
+        toast({ variant: "destructive", title: "Error", description: "No PDF text available to classify." });
+        return;
+    }
+    setIsClassifying(true);
+    setSubjectLevel(null);
+    try {
+        const pdfText = pdfData.pages.join('\n\n');
+        const result = await classifySubjectLevel({ pdfText });
+        setSubjectLevel(result);
+    } catch (error) {
+        console.error("AI classification failed", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Failed to classify subject level. Please try again." });
+    } finally {
+        setIsClassifying(false);
     }
   }
 
@@ -198,19 +223,45 @@ export default function Home() {
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Input placeholder="e.g., What were the main findings of the study?" {...field} disabled={isLoading}/>
+                              <Input placeholder="e.g., What were the main findings of the study?" {...field} disabled={isLoading || isClassifying}/>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={isLoading}>
+                      <Button type="submit" className="w-full" disabled={isLoading || isClassifying}>
                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                         Find Information
                       </Button>
                     </form>
                   </Form>
                 </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><GraduationCap className="text-primary"/> Subject Level</div>
+                      <Button size="sm" onClick={handleClassify} disabled={isClassifying || isLoading}>
+                        {isClassifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the educational level of the research subjects.</CardDescription>
+                </CardHeader>
+                { (isClassifying || subjectLevel) &&
+                <CardContent>
+                    {isClassifying ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : subjectLevel ? (
+                        <div className="flex items-center justify-center">
+                            <Badge variant="secondary" className="text-lg">{subjectLevel.level}</Badge>
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
               </Card>
 
               <Card className="min-h-[200px]">
