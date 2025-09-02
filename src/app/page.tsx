@@ -179,7 +179,7 @@ export default function Home() {
                     </Button>
                 </CardHeader>
                 <CardContent className="h-full p-0">
-                    <iframe src={pdfData.dataUri} className="h-[calc(100%-72px)] w-full" title={pdfData.name} />
+                    <iframe src={`${pdfData.dataUri}#view=fitH`} className="h-[calc(100%-72px)] w-full" title={pdfData.name} />
                 </CardContent>
             </Card>
 
@@ -230,24 +230,28 @@ export default function Home() {
                             <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-foreground">
                                 {searchResult.extractedInformation}
                             </div>
-                            {(searchResult.sourcePage || searchResult.sourceText) && (
+                            {searchResult.sources && searchResult.sources.length > 0 && (
                                 <>
                                     <Separator/>
-                                    <div className="space-y-2 pt-4">
-                                        {searchResult.sourceText && (
-                                            <div className="flex items-start gap-3 text-sm text-muted-foreground">
-                                                <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
-                                                <blockquote className="border-l-2 border-accent pl-3 italic">
-                                                    {searchResult.sourceText}
-                                                </blockquote>
-                                            </div>
-                                        )}
-                                        {searchResult.sourcePage && (
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <FileBadge className="h-4 w-4 text-accent" />
-                                                <span>Source: Page {searchResult.sourcePage}</span>
-                                            </div>
-                                        )}
+                                    <div className="space-y-4 pt-4">
+                                        {searchResult.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
                                     </div>
                                 </>
                             )}
