@@ -4,3 +4,4 @@ config();
 import '@/ai/flows/summarize-pdf.ts';
 import '@/ai/flows/extract-information-from-pdf.ts';
 import '@/ai/flows/classify-subject-level.ts';
+import '@/ai/flows/classify-discipline.ts';

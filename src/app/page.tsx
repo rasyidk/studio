@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getPdf, savePdf, clearPdfs as clearDbPdfs } from "@/lib/db";
 import { extractInformation, ExtractInformationOutput } from "@/ai/flows/extract-information-from-pdf";
 import { classifySubjectLevel, ClassifySubjectLevelOutput } from "@/ai/flows/classify-subject-level";
+import { classifyDiscipline, ClassifyDisciplineOutput } from "@/ai/flows/classify-discipline";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
@@ -39,7 +40,9 @@ export default function Home() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [searchResult, setSearchResult] = useState<ExtractInformationOutput | null>(null);
   const [subjectLevel, setSubjectLevel] = useState<ClassifySubjectLevelOutput | null>(null);
+  const [discipline, setDiscipline] = useState<ClassifyDisciplineOutput | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
+  const [isClassifyingDiscipline, setIsClassifyingDiscipline] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -88,6 +91,7 @@ export default function Home() {
       setIsLoading(true);
       setSearchResult(null);
       setSubjectLevel(null);
+      setDiscipline(null);
       form.reset();
       try {
         const reader = new FileReader();
@@ -113,6 +117,7 @@ export default function Home() {
     setPdfData(null);
     setSearchResult(null);
     setSubjectLevel(null);
+    setDiscipline(null);
     form.reset();
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -156,6 +161,25 @@ export default function Home() {
         toast({ variant: "destructive", title: "AI Error", description: "Failed to classify subject level. Please try again." });
     } finally {
         setIsClassifying(false);
+    }
+  }
+
+  const handleClassifyDiscipline = async () => {
+    if (!pdfData?.pages || pdfData.pages.length === 0) {
+        toast({ variant: "destructive", title: "Error", description: "No PDF text available to classify." });
+        return;
+    }
+    setIsClassifyingDiscipline(true);
+    setDiscipline(null);
+    try {
+        const pdfText = pdfData.pages.join('\n\n');
+        const result = await classifyDiscipline({ pdfText });
+        setDiscipline(result);
+    } catch (error) {
+        console.error("AI classification failed", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Failed to classify discipline. Please try again." });
+    } finally {
+        setIsClassifyingDiscipline(false);
     }
   }
 
@@ -229,7 +253,7 @@ export default function Home() {
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={isLoading || isClassifying}>
+                      <Button type="submit" className="w-full" disabled={isLoading || isClassifying || isClassifyingDiscipline}>
                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                         Find Information
                       </Button>
@@ -288,11 +312,66 @@ export default function Home() {
                     )}
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><BookText className="text-primary"/> Discipline</div>
+                      <Button size="sm" onClick={handleClassifyDiscipline} disabled={isClassifyingDiscipline || isLoading || isClassifying}>
+                        {isClassifyingDiscipline ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the discipline of the research paper.</CardDescription>
+                </CardHeader>
+                { (isClassifyingDiscipline || discipline) &&
+                <CardContent>
+                    {isClassifyingDiscipline ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : discipline ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <Badge variant="secondary" className="text-lg">{discipline.discipline}</Badge>
+                            </div>
+
+                            {discipline.sources && discipline.sources.length > 0 && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-4 pt-4">
+                                        {discipline.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
+              </Card>
+
               <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center justify-between text-2xl">
                       <div className="flex items-center gap-2"><GraduationCap className="text-primary"/> Subject Level</div>
-                      <Button size="sm" onClick={handleClassify} disabled={isClassifying || isLoading}>
+                      <Button size="sm" onClick={handleClassify} disabled={isClassifying || isLoading || isClassifyingDiscipline}>
                         {isClassifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                         Classify
                       </Button>
