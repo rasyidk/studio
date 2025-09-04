@@ -20,3 +20,4 @@ import '@/ai/flows/classify-outcome-category.ts';
 import '@/ai/flows/classify-evidence-strength.ts';
 import '@/ai/flows/classify-measures.ts';
 import '@/ai/flows/classify-design-type.ts';
+import '@/ai/flows/classify-ai-disclosure-required.ts';
