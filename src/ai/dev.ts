@@ -12,3 +12,5 @@ import '@/ai/flows/classify-sample-size.ts';
 import '@/ai/flows/classify-ai-tech-type.ts';
 import '@/ai/flows/classify-emi-context.ts';
 import '@/ai/flows/classify-intervention-roles.ts';
+import '@/ai/flows/classify-roles-skills.ts';
+
