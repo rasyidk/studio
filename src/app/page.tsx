@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe, Sigma } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { classifyDiscipline, ClassifyDisciplineOutput } from "@/ai/flows/classif
 import { classifySubDiscipline, ClassifySubDisciplineOutput } from "@/ai/flows/classify-sub-discipline";
 import { classifyParticipantsGroup, ClassifyParticipantsGroupOutput } from "@/ai/flows/classify-participants-group";
 import { classifyCountryRegion, ClassifyCountryRegionOutput } from "@/ai/flows/classify-country-region";
+import { classifySampleSize, ClassifySampleSizeOutput } from "@/ai/flows/classify-sample-size";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
@@ -47,11 +48,13 @@ export default function Home() {
   const [subDiscipline, setSubDiscipline] = useState<ClassifySubDisciplineOutput | null>(null);
   const [participantsGroup, setParticipantsGroup] = useState<ClassifyParticipantsGroupOutput | null>(null);
   const [countryRegion, setCountryRegion] = useState<ClassifyCountryRegionOutput | null>(null);
+  const [sampleSize, setSampleSize] = useState<ClassifySampleSizeOutput | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
   const [isClassifyingDiscipline, setIsClassifyingDiscipline] = useState(false);
   const [isClassifyingSubDiscipline, setIsClassifyingSubDiscipline] = useState(false);
   const [isClassifyingParticipantsGroup, setIsClassifyingParticipantsGroup] = useState(false);
   const [isClassifyingCountryRegion, setIsClassifyingCountryRegion] = useState(false);
+  const [isClassifyingSampleSize, setIsClassifyingSampleSize] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -104,6 +107,7 @@ export default function Home() {
       setSubDiscipline(null);
       setParticipantsGroup(null);
       setCountryRegion(null);
+      setSampleSize(null);
       form.reset();
       try {
         const reader = new FileReader();
@@ -133,6 +137,7 @@ export default function Home() {
     setSubDiscipline(null);
     setParticipantsGroup(null);
     setCountryRegion(null);
+    setSampleSize(null);
     form.reset();
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -255,7 +260,26 @@ export default function Home() {
     }
   }
 
-  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion;
+  const handleClassifySampleSize = async () => {
+    if (!pdfData?.pages || pdfData.pages.length === 0) {
+        toast({ variant: "destructive", title: "Error", description: "No PDF text available to classify." });
+        return;
+    }
+    setIsClassifyingSampleSize(true);
+    setSampleSize(null);
+    try {
+        const pdfText = pdfData.pages.join('\n\n');
+        const result = await classifySampleSize({ pdfText });
+        setSampleSize(result);
+    } catch (error) {
+        console.error("AI classification failed", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Failed to classify sample size. Please try again." });
+    } finally {
+        setIsClassifyingSampleSize(false);
+    }
+  }
+
+  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion || isClassifyingSampleSize;
 
   if (isInitializing) {
     return (
@@ -629,6 +653,60 @@ export default function Home() {
                                     <Separator/>
                                     <div className="space-y-4 pt-4">
                                         {countryRegion.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
+              </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><Sigma className="text-primary"/> Sample Size</div>
+                      <Button size="sm" onClick={handleClassifySampleSize} disabled={anyLoading}>
+                        {isClassifyingSampleSize ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the sample size (N) of the research participants.</CardDescription>
+                </CardHeader>
+                { (isClassifyingSampleSize || sampleSize) &&
+                <CardContent>
+                    {isClassifyingSampleSize ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : sampleSize ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <Badge variant="secondary" className="text-lg">N = {sampleSize.sampleSize}</Badge>
+                            </div>
+
+                            {sampleSize.sources && sampleSize.sources.length > 0 && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-4 pt-4">
+                                        {sampleSize.sources.map((source, index) => (
                                           <div key={index} className="space-y-2">
                                             {source.text && (
                                                 <div className="flex items-start gap-3 text-sm text-muted-foreground">
