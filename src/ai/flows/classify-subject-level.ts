@@ -27,10 +27,14 @@ const SubjectLevelEnum = z.enum([
     'NotApplicable'
 ]);
 
+const SourceSchema = z.object({
+  page: z.number().optional().describe('The page number from which the information was extracted.'),
+  text: z.string().optional().describe('The exact paragraph or sentence from the document that was used to formulate the answer.'),
+});
+
 const ClassifySubjectLevelOutputSchema = z.object({
   level: SubjectLevelEnum.describe('The identified educational level of the research subjects.'),
-  source: z.string().optional().describe('The exact sentence or phrase from the document that justifies the classification.'),
-  page: z.number().optional().describe('The page number from which the source was taken.'),
+  sources: z.array(SourceSchema).describe('A list of sources (page and text) used to justify the classification.'),
 });
 export type ClassifySubjectLevelOutput = z.infer<typeof ClassifySubjectLevelOutputSchema>;
 
@@ -56,7 +60,7 @@ Choose only one category from the following:
 - "NotApplicable": if the research does not involve human subjects or their educational level is not mentioned.
 
 Respond with the category name in the 'level' field.
-Also, provide the exact sentence or phrase from the document that justifies your classification in the 'source' field, and the page number in the 'page' field. If the level is "NotApplicable", the source and page can be empty.
+Also, provide all the exact sentences or phrases from the document that justify your classification in the 'sources' field, along with their page numbers. If the level is "NotApplicable", the sources can be empty.
 
 Paper Content:
 {{{pdfText}}}

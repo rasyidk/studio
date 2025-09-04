@@ -238,45 +238,7 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
-                      <div className="flex items-center gap-2"><GraduationCap className="text-primary"/> Subject Level</div>
-                      <Button size="sm" onClick={handleClassify} disabled={isClassifying || isLoading}>
-                        {isClassifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                        Classify
-                      </Button>
-                    </CardTitle>
-                    <CardDescription>Identify the educational level of the research subjects.</CardDescription>
-                </CardHeader>
-                { (isClassifying || subjectLevel) &&
-                <CardContent>
-                    {isClassifying ? (
-                        <div className="flex items-center justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        </div>
-                    ) : subjectLevel ? (
-                        <div className="flex flex-col items-center justify-center gap-4">
-                            <Badge variant="secondary" className="text-lg">{subjectLevel.level}</Badge>
-                            {subjectLevel.source && (
-                                <div className="flex items-start gap-3 text-sm text-muted-foreground self-stretch">
-                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
-                                    <blockquote className="border-l-2 border-accent pl-3 italic">
-                                        {subjectLevel.source}
-                                    </blockquote>
-                                </div>
-                            )}
-                             {subjectLevel.page && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground self-stretch">
-                                    <FileBadge className="h-4 w-4 text-accent" />
-                                    <span>Source: Page {subjectLevel.page}</span>
-                                </div>
-                            )}
-                        </div>
-                    ) : null}
-                </CardContent>
-                }
-              </Card>
+              
 
               <Card className="min-h-[200px]">
                 <CardHeader>
@@ -325,6 +287,59 @@ export default function Home() {
                         <p className="text-center text-muted-foreground">No query submitted yet.</p>
                     )}
                 </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><GraduationCap className="text-primary"/> Subject Level</div>
+                      <Button size="sm" onClick={handleClassify} disabled={isClassifying || isLoading}>
+                        {isClassifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the educational level of the research subjects.</CardDescription>
+                </CardHeader>
+                { (isClassifying || subjectLevel) &&
+                <CardContent>
+                    {isClassifying ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : subjectLevel ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <Badge variant="secondary" className="text-lg">{subjectLevel.level}</Badge>
+                            </div>
+
+                            {subjectLevel.sources && subjectLevel.sources.length > 0 && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-4 pt-4">
+                                        {subjectLevel.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
               </Card>
             </div>
           </div>
