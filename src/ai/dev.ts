@@ -18,3 +18,4 @@ import '@/ai/flows/classify-ethics-focus.ts';
 import '@/ai/flows/classify-teacher-support.ts';
 import '@/ai/flows/classify-outcome-category.ts';
 import '@/ai/flows/classify-evidence-strength.ts';
+import '@/ai/flows/classify-measures.ts';
