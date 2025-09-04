@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe, Sigma, Waypoints, MessageSquareQuote, Puzzle, Languages } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe, Sigma, Waypoints, MessageSquareQuote, Puzzle, Languages, Blend } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import { classifyAiTechType, ClassifyAiTechTypeOutput } from "@/ai/flows/classif
 import { classifyEmiContext, ClassifyEmiContextOutput } from "@/ai/flows/classify-emi-context";
 import { classifyInterventionRoles, ClassifyInterventionRolesOutput } from "@/ai/flows/classify-intervention-roles";
 import { classifyRolesSkills, ClassifyRolesSkillsOutput } from "@/ai/flows/classify-roles-skills";
+import { classifyIntegrationMode, ClassifyIntegrationModeOutput } from "@/ai/flows/classify-integration-mode";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
@@ -57,6 +58,7 @@ export default function Home() {
   const [emiContext, setEmiContext] = useState<ClassifyEmiContextOutput | null>(null);
   const [interventionRoles, setInterventionRoles] = useState<ClassifyInterventionRolesOutput | null>(null);
   const [rolesSkills, setRolesSkills] = useState<ClassifyRolesSkillsOutput | null>(null);
+  const [integrationMode, setIntegrationMode] = useState<ClassifyIntegrationModeOutput | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
   const [isClassifyingDiscipline, setIsClassifyingDiscipline] = useState(false);
   const [isClassifyingSubDiscipline, setIsClassifyingSubDiscipline] = useState(false);
@@ -67,6 +69,7 @@ export default function Home() {
   const [isClassifyingEmiContext, setIsClassifyingEmiContext] = useState(false);
   const [isClassifyingInterventionRoles, setIsClassifyingInterventionRoles] = useState(false);
   const [isClassifyingRolesSkills, setIsClassifyingRolesSkills] = useState(false);
+  const [isClassifyingIntegrationMode, setIsClassifyingIntegrationMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -124,6 +127,7 @@ export default function Home() {
       setEmiContext(null);
       setInterventionRoles(null);
       setRolesSkills(null);
+      setIntegrationMode(null);
       form.reset();
       try {
         const reader = new FileReader();
@@ -158,6 +162,7 @@ export default function Home() {
     setEmiContext(null);
     setInterventionRoles(null);
     setRolesSkills(null);
+    setIntegrationMode(null);
     form.reset();
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -375,7 +380,26 @@ export default function Home() {
     }
   }
 
-  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion || isClassifyingSampleSize || isClassifyingAiTechType || isClassifyingEmiContext || isClassifyingInterventionRoles || isClassifyingRolesSkills;
+  const handleClassifyIntegrationMode = async () => {
+    if (!pdfData?.pages || pdfData.pages.length === 0) {
+        toast({ variant: "destructive", title: "Error", description: "No PDF text available to classify." });
+        return;
+    }
+    setIsClassifyingIntegrationMode(true);
+    setIntegrationMode(null);
+    try {
+        const pdfText = pdfData.pages.join('\n\n');
+        const result = await classifyIntegrationMode({ pdfText });
+        setIntegrationMode(result);
+    } catch (error) {
+        console.error("AI classification failed", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Failed to classify integration mode. Please try again." });
+    } finally {
+        setIsClassifyingIntegrationMode(false);
+    }
+  }
+
+  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion || isClassifyingSampleSize || isClassifyingAiTechType || isClassifyingEmiContext || isClassifyingInterventionRoles || isClassifyingRolesSkills || isClassifyingIntegrationMode;
 
   if (isInitializing) {
     return (
@@ -1019,6 +1043,60 @@ export default function Home() {
                                     <Separator/>
                                     <div className="space-y-4 pt-4">
                                         {rolesSkills.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
+              </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><Blend className="text-primary"/> Integration Mode</div>
+                      <Button size="sm" onClick={handleClassifyIntegrationMode} disabled={anyLoading}>
+                        {isClassifyingIntegrationMode ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the mode of AI integration in the paper.</CardDescription>
+                </CardHeader>
+                { (isClassifyingIntegrationMode || integrationMode) &&
+                <CardContent>
+                    {isClassifyingIntegrationMode ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : integrationMode ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <Badge variant="secondary" className="text-lg">{integrationMode.integrationMode}</Badge>
+                            </div>
+
+                            {integrationMode.sources && integrationMode.sources.length > 0 && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-4 pt-4">
+                                        {integrationMode.sources.map((source, index) => (
                                           <div key={index} className="space-y-2">
                                             {source.text && (
                                                 <div className="flex items-start gap-3 text-sm text-muted-foreground">

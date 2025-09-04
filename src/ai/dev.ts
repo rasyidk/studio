@@ -13,4 +13,4 @@ import '@/ai/flows/classify-ai-tech-type.ts';
 import '@/ai/flows/classify-emi-context.ts';
 import '@/ai/flows/classify-intervention-roles.ts';
 import '@/ai/flows/classify-roles-skills.ts';
-
+import '@/ai/flows/classify-integration-mode.ts';
