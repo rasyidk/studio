@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe, Sigma, Waypoints, MessageSquareQuote, Puzzle, Languages, Blend, Scale, LifeBuoy, Target } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe, Sigma, Waypoints, MessageSquareQuote, Puzzle, Languages, Blend, Scale, LifeBuoy, Target, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import { classifyIntegrationMode, ClassifyIntegrationModeOutput } from "@/ai/flo
 import { classifyEthicsFocus, ClassifyEthicsFocusOutput } from "@/ai/flows/classify-ethics-focus";
 import { classifyTeacherSupport, ClassifyTeacherSupportOutput } from "@/ai/flows/classify-teacher-support";
 import { classifyOutcomeCategory, ClassifyOutcomeCategoryOutput } from "@/ai/flows/classify-outcome-category";
+import { classifyEvidenceStrength, ClassifyEvidenceStrengthOutput } from "@/ai/flows/classify-evidence-strength";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
@@ -65,6 +66,7 @@ export default function Home() {
   const [ethicsFocus, setEthicsFocus] = useState<ClassifyEthicsFocusOutput | null>(null);
   const [teacherSupport, setTeacherSupport] = useState<ClassifyTeacherSupportOutput | null>(null);
   const [outcomeCategory, setOutcomeCategory] = useState<ClassifyOutcomeCategoryOutput | null>(null);
+  const [evidenceStrength, setEvidenceStrength] = useState<ClassifyEvidenceStrengthOutput | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
   const [isClassifyingDiscipline, setIsClassifyingDiscipline] = useState(false);
   const [isClassifyingSubDiscipline, setIsClassifyingSubDiscipline] = useState(false);
@@ -79,6 +81,7 @@ export default function Home() {
   const [isClassifyingEthicsFocus, setIsClassifyingEthicsFocus] = useState(false);
   const [isClassifyingTeacherSupport, setIsClassifyingTeacherSupport] = useState(false);
   const [isClassifyingOutcomeCategory, setIsClassifyingOutcomeCategory] = useState(false);
+  const [isClassifyingEvidenceStrength, setIsClassifyingEvidenceStrength] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -140,6 +143,7 @@ export default function Home() {
       setEthicsFocus(null);
       setTeacherSupport(null);
       setOutcomeCategory(null);
+      setEvidenceStrength(null);
       form.reset();
       try {
         const reader = new FileReader();
@@ -178,6 +182,7 @@ export default function Home() {
     setEthicsFocus(null);
     setTeacherSupport(null);
     setOutcomeCategory(null);
+    setEvidenceStrength(null);
     form.reset();
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -471,7 +476,26 @@ export default function Home() {
     }
   }
 
-  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion || isClassifyingSampleSize || isClassifyingAiTechType || isClassifyingEmiContext || isClassifyingInterventionRoles || isClassifyingRolesSkills || isClassifyingIntegrationMode || isClassifyingEthicsFocus || isClassifyingTeacherSupport || isClassifyingOutcomeCategory;
+  const handleClassifyEvidenceStrength = async () => {
+    if (!pdfData?.pages || pdfData.pages.length === 0) {
+        toast({ variant: "destructive", title: "Error", description: "No PDF text available to classify." });
+        return;
+    }
+    setIsClassifyingEvidenceStrength(true);
+    setEvidenceStrength(null);
+    try {
+        const pdfText = pdfData.pages.join('\n\n');
+        const result = await classifyEvidenceStrength({ pdfText });
+        setEvidenceStrength(result);
+    } catch (error) {
+        console.error("AI classification failed", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Failed to classify evidence strength. Please try again." });
+    } finally {
+        setIsClassifyingEvidenceStrength(false);
+    }
+  }
+
+  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion || isClassifyingSampleSize || isClassifyingAiTechType || isClassifyingEmiContext || isClassifyingInterventionRoles || isClassifyingRolesSkills || isClassifyingIntegrationMode || isClassifyingEthicsFocus || isClassifyingTeacherSupport || isClassifyingOutcomeCategory || isClassifyingEvidenceStrength;
 
   if (isInitializing) {
     return (
@@ -1331,6 +1355,60 @@ export default function Home() {
                                     <Separator/>
                                     <div className="space-y-4 pt-4">
                                         {outcomeCategory.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
+              </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><ShieldCheck className="text-primary"/> Evidence Strength</div>
+                      <Button size="sm" onClick={handleClassifyEvidenceStrength} disabled={anyLoading}>
+                        {isClassifyingEvidenceStrength ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the strength of evidence reported in the paper.</CardDescription>
+                </CardHeader>
+                { (isClassifyingEvidenceStrength || evidenceStrength) &&
+                <CardContent>
+                    {isClassifyingEvidenceStrength ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : evidenceStrength ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <Badge variant="secondary" className="text-lg">{evidenceStrength.evidenceStrength}</Badge>
+                            </div>
+
+                            {evidenceStrength.sources && evidenceStrength.sources.length > 0 && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-4 pt-4">
+                                        {evidenceStrength.sources.map((source, index) => (
                                           <div key={index} className="space-y-2">
                                             {source.text && (
                                                 <div className="flex items-start gap-3 text-sm text-muted-foreground">
