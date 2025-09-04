@@ -316,60 +316,6 @@ export default function Home() {
               <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center justify-between text-2xl">
-                      <div className="flex items-center gap-2"><BookText className="text-primary"/> Discipline</div>
-                      <Button size="sm" onClick={handleClassifyDiscipline} disabled={isClassifyingDiscipline || isLoading || isClassifying}>
-                        {isClassifyingDiscipline ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                        Classify
-                      </Button>
-                    </CardTitle>
-                    <CardDescription>Identify the discipline of the research paper.</CardDescription>
-                </CardHeader>
-                { (isClassifyingDiscipline || discipline) &&
-                <CardContent>
-                    {isClassifyingDiscipline ? (
-                        <div className="flex items-center justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        </div>
-                    ) : discipline ? (
-                        <div className="space-y-4">
-                            <div className="flex justify-center">
-                                <Badge variant="secondary" className="text-lg">{discipline.discipline}</Badge>
-                            </div>
-
-                            {discipline.sources && discipline.sources.length > 0 && (
-                                <>
-                                    <Separator/>
-                                    <div className="space-y-4 pt-4">
-                                        {discipline.sources.map((source, index) => (
-                                          <div key={index} className="space-y-2">
-                                            {source.text && (
-                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
-                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
-                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
-                                                        {source.text}
-                                                    </blockquote>
-                                                </div>
-                                            )}
-                                            {source.page && (
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <FileBadge className="h-4 w-4 text-accent" />
-                                                    <span>Source: Page {source.page}</span>
-                                                </div>
-                                            )}
-                                          </div>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    ) : null}
-                </CardContent>
-                }
-              </Card>
-
-              <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
                       <div className="flex items-center gap-2"><GraduationCap className="text-primary"/> Subject Level</div>
                       <Button size="sm" onClick={handleClassify} disabled={isClassifying || isLoading || isClassifyingDiscipline}>
                         {isClassifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
@@ -420,6 +366,60 @@ export default function Home() {
                 </CardContent>
                 }
               </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><BookText className="text-primary"/> Discipline</div>
+                      <Button size="sm" onClick={handleClassifyDiscipline} disabled={isClassifyingDiscipline || isLoading || isClassifying}>
+                        {isClassifyingDiscipline ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the discipline of the research paper.</CardDescription>
+                </CardHeader>
+                { (isClassifyingDiscipline || discipline) &&
+                <CardContent>
+                    {isClassifyingDiscipline ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : discipline ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <Badge variant="secondary" className="text-lg">{discipline.discipline}</Badge>
+                            </div>
+
+                            {discipline.sources && discipline.sources.length > 0 && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-4 pt-4">
+                                        {discipline.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
+              </Card>
             </div>
           </div>
         )}
@@ -427,3 +427,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
