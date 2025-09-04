@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe, Sigma, Waypoints, MessageSquareQuote } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe, Sigma, Waypoints, MessageSquareQuote, Puzzle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import { classifyCountryRegion, ClassifyCountryRegionOutput } from "@/ai/flows/c
 import { classifySampleSize, ClassifySampleSizeOutput } from "@/ai/flows/classify-sample-size";
 import { classifyAiTechType, ClassifyAiTechTypeOutput } from "@/ai/flows/classify-ai-tech-type";
 import { classifyEmiContext, ClassifyEmiContextOutput } from "@/ai/flows/classify-emi-context";
+import { classifyInterventionRoles, ClassifyInterventionRolesOutput } from "@/ai/flows/classify-intervention-roles";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
@@ -53,6 +54,7 @@ export default function Home() {
   const [sampleSize, setSampleSize] = useState<ClassifySampleSizeOutput | null>(null);
   const [aiTechType, setAiTechType] = useState<ClassifyAiTechTypeOutput | null>(null);
   const [emiContext, setEmiContext] = useState<ClassifyEmiContextOutput | null>(null);
+  const [interventionRoles, setInterventionRoles] = useState<ClassifyInterventionRolesOutput | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
   const [isClassifyingDiscipline, setIsClassifyingDiscipline] = useState(false);
   const [isClassifyingSubDiscipline, setIsClassifyingSubDiscipline] = useState(false);
@@ -61,6 +63,7 @@ export default function Home() {
   const [isClassifyingSampleSize, setIsClassifyingSampleSize] = useState(false);
   const [isClassifyingAiTechType, setIsClassifyingAiTechType] = useState(false);
   const [isClassifyingEmiContext, setIsClassifyingEmiContext] = useState(false);
+  const [isClassifyingInterventionRoles, setIsClassifyingInterventionRoles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -116,6 +119,7 @@ export default function Home() {
       setSampleSize(null);
       setAiTechType(null);
       setEmiContext(null);
+      setInterventionRoles(null);
       form.reset();
       try {
         const reader = new FileReader();
@@ -148,6 +152,7 @@ export default function Home() {
     setSampleSize(null);
     setAiTechType(null);
     setEmiContext(null);
+    setInterventionRoles(null);
     form.reset();
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -327,7 +332,26 @@ export default function Home() {
     }
   }
 
-  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion || isClassifyingSampleSize || isClassifyingAiTechType || isClassifyingEmiContext;
+  const handleClassifyInterventionRoles = async () => {
+    if (!pdfData?.pages || pdfData.pages.length === 0) {
+        toast({ variant: "destructive", title: "Error", description: "No PDF text available to classify." });
+        return;
+    }
+    setIsClassifyingInterventionRoles(true);
+    setInterventionRoles(null);
+    try {
+        const pdfText = pdfData.pages.join('\n\n');
+        const result = await classifyInterventionRoles({ pdfText });
+        setInterventionRoles(result);
+    } catch (error) {
+        console.error("AI classification failed", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Failed to classify intervention roles. Please try again." });
+    } finally {
+        setIsClassifyingInterventionRoles(false);
+    }
+  }
+
+  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion || isClassifyingSampleSize || isClassifyingAiTechType || isClassifyingEmiContext || isClassifyingInterventionRoles;
 
   if (isInitializing) {
     return (
@@ -863,6 +887,60 @@ export default function Home() {
                                     <Separator/>
                                     <div className="space-y-4 pt-4">
                                         {emiContext.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
+              </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><Puzzle className="text-primary"/> Intervention Roles</div>
+                      <Button size="sm" onClick={handleClassifyInterventionRoles} disabled={anyLoading}>
+                        {isClassifyingInterventionRoles ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the roles or benefits of AI intervention for research subjects.</CardDescription>
+                </CardHeader>
+                { (isClassifyingInterventionRoles || interventionRoles) &&
+                <CardContent>
+                    {isClassifyingInterventionRoles ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : interventionRoles ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <Badge variant="secondary" className="text-lg">{interventionRoles.interventionRoles}</Badge>
+                            </div>
+
+                            {interventionRoles.sources && interventionRoles.sources.length > 0 && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-4 pt-4">
+                                        {interventionRoles.sources.map((source, index) => (
                                           <div key={index} className="space-y-2">
                                             {source.text && (
                                                 <div className="flex items-start gap-3 text-sm text-muted-foreground">
