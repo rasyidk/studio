@@ -9,3 +9,4 @@ import '@/ai/flows/classify-sub-discipline.ts';
 import '@/ai/flows/classify-participants-group.ts';
 import '@/ai/flows/classify-country-region.ts';
 import '@/ai/flows/classify-sample-size.ts';
+import '@/ai/flows/classify-ai-tech-type.ts';
