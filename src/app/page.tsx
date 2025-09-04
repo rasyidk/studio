@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import { classifySubjectLevel, ClassifySubjectLevelOutput } from "@/ai/flows/cla
 import { classifyDiscipline, ClassifyDisciplineOutput } from "@/ai/flows/classify-discipline";
 import { classifySubDiscipline, ClassifySubDisciplineOutput } from "@/ai/flows/classify-sub-discipline";
 import { classifyParticipantsGroup, ClassifyParticipantsGroupOutput } from "@/ai/flows/classify-participants-group";
+import { classifyCountryRegion, ClassifyCountryRegionOutput } from "@/ai/flows/classify-country-region";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
@@ -45,10 +46,12 @@ export default function Home() {
   const [discipline, setDiscipline] = useState<ClassifyDisciplineOutput | null>(null);
   const [subDiscipline, setSubDiscipline] = useState<ClassifySubDisciplineOutput | null>(null);
   const [participantsGroup, setParticipantsGroup] = useState<ClassifyParticipantsGroupOutput | null>(null);
+  const [countryRegion, setCountryRegion] = useState<ClassifyCountryRegionOutput | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
   const [isClassifyingDiscipline, setIsClassifyingDiscipline] = useState(false);
   const [isClassifyingSubDiscipline, setIsClassifyingSubDiscipline] = useState(false);
   const [isClassifyingParticipantsGroup, setIsClassifyingParticipantsGroup] = useState(false);
+  const [isClassifyingCountryRegion, setIsClassifyingCountryRegion] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -100,6 +103,7 @@ export default function Home() {
       setDiscipline(null);
       setSubDiscipline(null);
       setParticipantsGroup(null);
+      setCountryRegion(null);
       form.reset();
       try {
         const reader = new FileReader();
@@ -128,6 +132,7 @@ export default function Home() {
     setDiscipline(null);
     setSubDiscipline(null);
     setParticipantsGroup(null);
+    setCountryRegion(null);
     form.reset();
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -231,6 +236,26 @@ export default function Home() {
     }
   }
 
+  const handleClassifyCountryRegion = async () => {
+    if (!pdfData?.pages || pdfData.pages.length === 0) {
+        toast({ variant: "destructive", title: "Error", description: "No PDF text available to classify." });
+        return;
+    }
+    setIsClassifyingCountryRegion(true);
+    setCountryRegion(null);
+    try {
+        const pdfText = pdfData.pages.join('\n\n');
+        const result = await classifyCountryRegion({ pdfText });
+        setCountryRegion(result);
+    } catch (error) {
+        console.error("AI classification failed", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Failed to classify country or region. Please try again." });
+    } finally {
+        setIsClassifyingCountryRegion(false);
+    }
+  }
+
+  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion;
 
   if (isInitializing) {
     return (
@@ -296,13 +321,13 @@ export default function Home() {
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Input placeholder="e.g., What were the main findings of the study?" {...field} disabled={isLoading || isClassifying}/>
+                              <Input placeholder="e.g., What were the main findings of the study?" {...field} disabled={anyLoading}/>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup}>
+                      <Button type="submit" className="w-full" disabled={anyLoading}>
                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                         Find Information
                       </Button>
@@ -310,8 +335,6 @@ export default function Home() {
                   </Form>
                 </CardContent>
               </Card>
-
-              
 
               <Card className="min-h-[200px]">
                 <CardHeader>
@@ -366,7 +389,7 @@ export default function Home() {
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center justify-between text-2xl">
                       <div className="flex items-center gap-2"><GraduationCap className="text-primary"/> Subject Level</div>
-                      <Button size="sm" onClick={handleClassify} disabled={isClassifying || isLoading || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup}>
+                      <Button size="sm" onClick={handleClassify} disabled={anyLoading}>
                         {isClassifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                         Classify
                       </Button>
@@ -420,7 +443,7 @@ export default function Home() {
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center justify-between text-2xl">
                       <div className="flex items-center gap-2"><BookText className="text-primary"/> Discipline</div>
-                      <Button size="sm" onClick={handleClassifyDiscipline} disabled={isClassifyingDiscipline || isLoading || isClassifying || isClassifyingSubDiscipline || isClassifyingParticipantsGroup}>
+                      <Button size="sm" onClick={handleClassifyDiscipline} disabled={anyLoading}>
                         {isClassifyingDiscipline ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                         Classify
                       </Button>
@@ -474,7 +497,7 @@ export default function Home() {
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center justify-between text-2xl">
                       <div className="flex items-center gap-2"><Library className="text-primary"/> Sub-discipline</div>
-                      <Button size="sm" onClick={handleClassifySubDiscipline} disabled={isClassifyingDiscipline || isLoading || isClassifying || isClassifyingSubDiscipline || isClassifyingParticipantsGroup}>
+                      <Button size="sm" onClick={handleClassifySubDiscipline} disabled={anyLoading}>
                         {isClassifyingSubDiscipline ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                         Classify
                       </Button>
@@ -528,7 +551,7 @@ export default function Home() {
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center justify-between text-2xl">
                       <div className="flex items-center gap-2"><Users className="text-primary"/> Participants Group</div>
-                      <Button size="sm" onClick={handleClassifyParticipantsGroup} disabled={isClassifyingDiscipline || isLoading || isClassifying || isClassifyingSubDiscipline || isClassifyingParticipantsGroup}>
+                      <Button size="sm" onClick={handleClassifyParticipantsGroup} disabled={anyLoading}>
                         {isClassifyingParticipantsGroup ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                         Classify
                       </Button>
@@ -577,6 +600,61 @@ export default function Home() {
                 </CardContent>
                 }
               </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><Globe className="text-primary"/> Country or Region</div>
+                      <Button size="sm" onClick={handleClassifyCountryRegion} disabled={anyLoading}>
+                        {isClassifyingCountryRegion ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the country or region of the research participants.</CardDescription>
+                </CardHeader>
+                { (isClassifyingCountryRegion || countryRegion) &&
+                <CardContent>
+                    {isClassifyingCountryRegion ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : countryRegion ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <Badge variant="secondary" className="text-lg">{countryRegion.countryOrRegion}</Badge>
+                            </div>
+
+                            {countryRegion.sources && countryRegion.sources.length > 0 && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-4 pt-4">
+                                        {countryRegion.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
+              </Card>
+
             </div>
           </div>
         )}
