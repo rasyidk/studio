@@ -14,3 +14,4 @@ import '@/ai/flows/classify-emi-context.ts';
 import '@/ai/flows/classify-intervention-roles.ts';
 import '@/ai/flows/classify-roles-skills.ts';
 import '@/ai/flows/classify-integration-mode.ts';
+import '@/ai/flows/classify-ethics-focus.ts';

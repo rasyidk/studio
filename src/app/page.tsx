@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe, Sigma, Waypoints, MessageSquareQuote, Puzzle, Languages, Blend } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users, Globe, Sigma, Waypoints, MessageSquareQuote, Puzzle, Languages, Blend, Scale } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,7 @@ import { classifyEmiContext, ClassifyEmiContextOutput } from "@/ai/flows/classif
 import { classifyInterventionRoles, ClassifyInterventionRolesOutput } from "@/ai/flows/classify-intervention-roles";
 import { classifyRolesSkills, ClassifyRolesSkillsOutput } from "@/ai/flows/classify-roles-skills";
 import { classifyIntegrationMode, ClassifyIntegrationModeOutput } from "@/ai/flows/classify-integration-mode";
+import { classifyEthicsFocus, ClassifyEthicsFocusOutput } from "@/ai/flows/classify-ethics-focus";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
@@ -59,6 +60,7 @@ export default function Home() {
   const [interventionRoles, setInterventionRoles] = useState<ClassifyInterventionRolesOutput | null>(null);
   const [rolesSkills, setRolesSkills] = useState<ClassifyRolesSkillsOutput | null>(null);
   const [integrationMode, setIntegrationMode] = useState<ClassifyIntegrationModeOutput | null>(null);
+  const [ethicsFocus, setEthicsFocus] = useState<ClassifyEthicsFocusOutput | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
   const [isClassifyingDiscipline, setIsClassifyingDiscipline] = useState(false);
   const [isClassifyingSubDiscipline, setIsClassifyingSubDiscipline] = useState(false);
@@ -70,6 +72,7 @@ export default function Home() {
   const [isClassifyingInterventionRoles, setIsClassifyingInterventionRoles] = useState(false);
   const [isClassifyingRolesSkills, setIsClassifyingRolesSkills] = useState(false);
   const [isClassifyingIntegrationMode, setIsClassifyingIntegrationMode] = useState(false);
+  const [isClassifyingEthicsFocus, setIsClassifyingEthicsFocus] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -128,6 +131,7 @@ export default function Home() {
       setInterventionRoles(null);
       setRolesSkills(null);
       setIntegrationMode(null);
+      setEthicsFocus(null);
       form.reset();
       try {
         const reader = new FileReader();
@@ -163,6 +167,7 @@ export default function Home() {
     setInterventionRoles(null);
     setRolesSkills(null);
     setIntegrationMode(null);
+    setEthicsFocus(null);
     form.reset();
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -399,7 +404,26 @@ export default function Home() {
     }
   }
 
-  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion || isClassifyingSampleSize || isClassifyingAiTechType || isClassifyingEmiContext || isClassifyingInterventionRoles || isClassifyingRolesSkills || isClassifyingIntegrationMode;
+  const handleClassifyEthicsFocus = async () => {
+    if (!pdfData?.pages || pdfData.pages.length === 0) {
+        toast({ variant: "destructive", title: "Error", description: "No PDF text available to classify." });
+        return;
+    }
+    setIsClassifyingEthicsFocus(true);
+    setEthicsFocus(null);
+    try {
+        const pdfText = pdfData.pages.join('\n\n');
+        const result = await classifyEthicsFocus({ pdfText });
+        setEthicsFocus(result);
+    } catch (error) {
+        console.error("AI classification failed", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Failed to classify ethics focus. Please try again." });
+    } finally {
+        setIsClassifyingEthicsFocus(false);
+    }
+  }
+
+  const anyLoading = isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup || isClassifyingCountryRegion || isClassifyingSampleSize || isClassifyingAiTechType || isClassifyingEmiContext || isClassifyingInterventionRoles || isClassifyingRolesSkills || isClassifyingIntegrationMode || isClassifyingEthicsFocus;
 
   if (isInitializing) {
     return (
@@ -1097,6 +1121,60 @@ export default function Home() {
                                     <Separator/>
                                     <div className="space-y-4 pt-4">
                                         {integrationMode.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
+              </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><Scale className="text-primary"/> Ethics Focus</div>
+                      <Button size="sm" onClick={handleClassifyEthicsFocus} disabled={anyLoading}>
+                        {isClassifyingEthicsFocus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the ethical focus(es) of AI intervention in the paper.</CardDescription>
+                </CardHeader>
+                { (isClassifyingEthicsFocus || ethicsFocus) &&
+                <CardContent>
+                    {isClassifyingEthicsFocus ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : ethicsFocus ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <Badge variant="secondary" className="text-lg">{ethicsFocus.ethicsFocus}</Badge>
+                            </div>
+
+                            {ethicsFocus.sources && ethicsFocus.sources.length > 0 && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-4 pt-4">
+                                        {ethicsFocus.sources.map((source, index) => (
                                           <div key={index} className="space-y-2">
                                             {source.text && (
                                                 <div className="flex items-start gap-3 text-sm text-muted-foreground">
