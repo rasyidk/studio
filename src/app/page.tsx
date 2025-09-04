@@ -5,7 +5,7 @@ import * as pdfjs from "pdfjs-dist";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library } from "lucide-react";
+import { BookOpenCheck, Loader2, Search, Sparkles, Trash2, UploadCloud, FileBadge, Quote, GraduationCap, BookText, Library, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import { extractInformation, ExtractInformationOutput } from "@/ai/flows/extract
 import { classifySubjectLevel, ClassifySubjectLevelOutput } from "@/ai/flows/classify-subject-level";
 import { classifyDiscipline, ClassifyDisciplineOutput } from "@/ai/flows/classify-discipline";
 import { classifySubDiscipline, ClassifySubDisciplineOutput } from "@/ai/flows/classify-sub-discipline";
+import { classifyParticipantsGroup, ClassifyParticipantsGroupOutput } from "@/ai/flows/classify-participants-group";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
@@ -43,9 +44,11 @@ export default function Home() {
   const [subjectLevel, setSubjectLevel] = useState<ClassifySubjectLevelOutput | null>(null);
   const [discipline, setDiscipline] = useState<ClassifyDisciplineOutput | null>(null);
   const [subDiscipline, setSubDiscipline] = useState<ClassifySubDisciplineOutput | null>(null);
+  const [participantsGroup, setParticipantsGroup] = useState<ClassifyParticipantsGroupOutput | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
   const [isClassifyingDiscipline, setIsClassifyingDiscipline] = useState(false);
   const [isClassifyingSubDiscipline, setIsClassifyingSubDiscipline] = useState(false);
+  const [isClassifyingParticipantsGroup, setIsClassifyingParticipantsGroup] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -96,6 +99,7 @@ export default function Home() {
       setSubjectLevel(null);
       setDiscipline(null);
       setSubDiscipline(null);
+      setParticipantsGroup(null);
       form.reset();
       try {
         const reader = new FileReader();
@@ -123,6 +127,7 @@ export default function Home() {
     setSubjectLevel(null);
     setDiscipline(null);
     setSubDiscipline(null);
+    setParticipantsGroup(null);
     form.reset();
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -207,6 +212,26 @@ export default function Home() {
     }
   }
 
+  const handleClassifyParticipantsGroup = async () => {
+    if (!pdfData?.pages || pdfData.pages.length === 0) {
+        toast({ variant: "destructive", title: "Error", description: "No PDF text available to classify." });
+        return;
+    }
+    setIsClassifyingParticipantsGroup(true);
+    setParticipantsGroup(null);
+    try {
+        const pdfText = pdfData.pages.join('\n\n');
+        const result = await classifyParticipantsGroup({ pdfText });
+        setParticipantsGroup(result);
+    } catch (error) {
+        console.error("AI classification failed", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Failed to classify participants group. Please try again." });
+    } finally {
+        setIsClassifyingParticipantsGroup(false);
+    }
+  }
+
+
   if (isInitializing) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -277,7 +302,7 @@ export default function Home() {
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline}>
+                      <Button type="submit" className="w-full" disabled={isLoading || isClassifying || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup}>
                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                         Find Information
                       </Button>
@@ -341,7 +366,7 @@ export default function Home() {
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center justify-between text-2xl">
                       <div className="flex items-center gap-2"><GraduationCap className="text-primary"/> Subject Level</div>
-                      <Button size="sm" onClick={handleClassify} disabled={isClassifying || isLoading || isClassifyingDiscipline || isClassifyingSubDiscipline}>
+                      <Button size="sm" onClick={handleClassify} disabled={isClassifying || isLoading || isClassifyingDiscipline || isClassifyingSubDiscipline || isClassifyingParticipantsGroup}>
                         {isClassifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                         Classify
                       </Button>
@@ -395,7 +420,7 @@ export default function Home() {
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center justify-between text-2xl">
                       <div className="flex items-center gap-2"><BookText className="text-primary"/> Discipline</div>
-                      <Button size="sm" onClick={handleClassifyDiscipline} disabled={isClassifyingDiscipline || isLoading || isClassifying || isClassifyingSubDiscipline}>
+                      <Button size="sm" onClick={handleClassifyDiscipline} disabled={isClassifyingDiscipline || isLoading || isClassifying || isClassifyingSubDiscipline || isClassifyingParticipantsGroup}>
                         {isClassifyingDiscipline ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                         Classify
                       </Button>
@@ -449,7 +474,7 @@ export default function Home() {
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center justify-between text-2xl">
                       <div className="flex items-center gap-2"><Library className="text-primary"/> Sub-discipline</div>
-                      <Button size="sm" onClick={handleClassifySubDiscipline} disabled={isClassifyingDiscipline || isLoading || isClassifying || isClassifyingSubDiscipline}>
+                      <Button size="sm" onClick={handleClassifySubDiscipline} disabled={isClassifyingDiscipline || isLoading || isClassifying || isClassifyingSubDiscipline || isClassifyingParticipantsGroup}>
                         {isClassifyingSubDiscipline ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                         Classify
                       </Button>
@@ -473,6 +498,60 @@ export default function Home() {
                                     <Separator/>
                                     <div className="space-y-4 pt-4">
                                         {subDiscipline.sources.map((source, index) => (
+                                          <div key={index} className="space-y-2">
+                                            {source.text && (
+                                                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                    <Quote className="h-4 w-4 flex-shrink-0 text-accent mt-1" />
+                                                    <blockquote className="border-l-2 border-accent pl-3 italic">
+                                                        {source.text}
+                                                    </blockquote>
+                                                </div>
+                                            )}
+                                            {source.page && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileBadge className="h-4 w-4 text-accent" />
+                                                    <span>Source: Page {source.page}</span>
+                                                </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+                </CardContent>
+                }
+              </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center justify-between text-2xl">
+                      <div className="flex items-center gap-2"><Users className="text-primary"/> Participants Group</div>
+                      <Button size="sm" onClick={handleClassifyParticipantsGroup} disabled={isClassifyingDiscipline || isLoading || isClassifying || isClassifyingSubDiscipline || isClassifyingParticipantsGroup}>
+                        {isClassifyingParticipantsGroup ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Classify
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Identify the group of research participants.</CardDescription>
+                </CardHeader>
+                { (isClassifyingParticipantsGroup || participantsGroup) &&
+                <CardContent>
+                    {isClassifyingParticipantsGroup ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : participantsGroup ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <Badge variant="secondary" className="text-lg">{participantsGroup.participantsGroup}</Badge>
+                            </div>
+
+                            {participantsGroup.sources && participantsGroup.sources.length > 0 && (
+                                <>
+                                    <Separator/>
+                                    <div className="space-y-4 pt-4">
+                                        {participantsGroup.sources.map((source, index) => (
                                           <div key={index} className="space-y-2">
                                             {source.text && (
                                                 <div className="flex items-start gap-3 text-sm text-muted-foreground">
